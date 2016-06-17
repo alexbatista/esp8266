@@ -1,132 +1,264 @@
-#include "mbed.h"
-#include "TextLCD.h"
-Serial pc(USBTX, USBRX);
-Serial esp(A0,A1);
-//DigitalOut myled(LED1);
-// PwmOut PWM(LED1);
-//AnalogIn Ain(A0);
-// Timer t;
-// TextLCD lcd(D6, D7, D8, D9, D10, D11); // rs, e, d4-d7
-int count = 0, ended, timeout = 2;
-char buf[1024] = {0};
-char snd[255];
-char * m;
+   #include "mbed.h"
+   #include <string.h>
+   #define T_PC 0
+   #define T_ESP 1
+   Serial pc(USBTX, USBRX);
+   Serial esp(A0,A1);
+   InterruptIn bt(USER_BUTTON);
+   enum _STATE{
+     RST,
+     WIFIMODE,
+     CONNECT,
+     GETIP,
+     CONNECTED,
+     OPENTCP,
+     SENDTCP,
+     SENDDATATCP,
+     CLOSETCP
+   };
+   char ipServer [] = "184.106.153.149";
+   char server[] = "GET /update?api_key=TGGXXSHNNX87LYX7&field1=50";
+   char ssid[32] = "IC";     // enter WiFi router ssid inside the quotes
+   char pwd [32] = "icomputacaoufal"; // enter WiFi router password inside the quotes
 
-char server[] = "GET /update?api_key=TGGXXSHNNX87LYX7&field1=50";
-char ssid[32] = "IC";     // enter WiFi router ssid inside the quotes
-char pwd [32] = "icomputacaoufal"; // enter WiFi router password inside the quotes
+   char port [] = "80";
+   char tcp [] = "TCP";
 
-enum states {
-  RST = 0
-};
+   int count = 0, ended, timeout = 2;
+   char buf[1024] = {0};
+   char snd[255];
+   char * m;
 
-void rxHandler();
-
-void flush(void) {
-   while (esp.readable()) {
-       (void)esp.getc();
+   int op;
+   int rsp;
+   void send(char* command, int target){
+     if(target == 1){
+       //pc.printf("%s\r\n",command);
+       esp.printf("%s\r\n",command);
+     }else if(target == 0){
+       pc.printf("%s\r\n",command);
+     }
+     //sleep
    }
+   void rxHandler();
+
+   void Reset(){
+       // Mexer no whatchdog
+       char str[1024];
+       sprintf(str,"AT+RST");
+       //pc.printf("STR = %s\r\n",str);
+       send(str,T_ESP); //set wifi-mode client
+
+   }
+   void WiFiMode(){
+     char str[1024];
+     sprintf(str,"AT+CWMODE=1");
+     send(str,T_ESP);
+   }
+   void Connect(){
+     char str[1024];
+     sprintf(str,"AT+CWJAP=\"%s\",\"%s\"",ssid,pwd);
+     send(str,T_ESP);
+
+   }
+   void GetIP(){
+     char str[1024];
+     sprintf(str,"AT+CIFSR");
+     send(str,T_ESP);
+   }
+
+
+   void OpenTCP(){
+     char str[1024];
+     sprintf(str,"AT+CIPSTART=\"%s\",\"%s\",%s",tcp,ipServer,port);
+     send(str,T_ESP);
+
+   }
+   void SendTCP(){
+       char str[1024];
+       sprintf(str,"AT+CIPSEND=%d",strlen(server));
+       send(str,T_ESP); //set wifi-mode client
+
+   }
+   void SendDataTCP(){
+     //pegar leitura do  analogico
+     char str[1024];
+     sprintf(str,"%s",server);
+     send(str,T_ESP);
+
+   }
+
+   void CloseTCP(){
+     char str[1024];
+     sprintf(str,"AT+CIPCLOSE");
+     send(str,T_ESP);
+   }
+void opca();
+void IQRButton();
+   _STATE STATUS = RST;
+   int main(){
+     esp.baud(115200);
+     pc.baud(115200);
+
+     esp.attach(rxHandler,Serial::RxIrq);
+     bt.rise(&IQRButton);
+     pc.printf("Initi RST\n");
+     wait(1);
+     //Reset();
+     esp.printf("AT\r\n");
+     STATUS = RST;
+     wait(2);
+     //opca();
+     while(1){
+       //sleep();
+       pc.printf("_______________");
+       pc.printf("\nBUF= %s\n",buf);
+       pc.printf("M = %s\n",m);
+       pc.printf("OP = %d\n",op);
+       pc.printf("STATUS = %d\n",STATUS);
+       memset(buf, 0, sizeof(buf));
+       count=0;
+       wait(10);
+       opca();
+     }
+
+
+   }
+
+   void rxHandler(){
+   // 0 -ok, 1 - error, 2 - `>` send return
+   //rsp
+
+     //count = 0;
+     while(esp.readable()) {
+          buf[count++] = esp.getc();
+          //pc.putc(esp.getc());
+          //count++;
+     }
+     //count = 0;
+     //wait(2);
+     //pc.printf("\n-\n%d\n",strlen(buf));
+     //pc.printf("\ncount= %d\n",count);
+     m = buf + strlen(buf) - 4;
+
+     if (strcmp(m,"OK\r\n") == 0){
+       op = 1;
+       rsp = 0;
+       // pc.printf("ESP has reseted!");
+     }else if (strcmp(m,"\n>\r\n") == 0){
+       op = 2;
+       rsp = 2;
+       // pc.printf("ESP has reseted!");
+     }else{
+       op=3;
+       rsp = 1;
+       // pc.printf("%s",m);
+     }
+     //  memset(buf, 0, sizeof(buf));
+// pc.printf("\nIN-2, OP = %d,\nM = %s",op,buf);
+
+   }
+void opca(){
+  switch (STATUS) {
+    case RST:
+        if(rsp == 0){
+          //op=99;
+          WiFiMode();
+          STATUS = WIFIMODE;
+        }
+        else{
+          //Reset();
+          STATUS = RST;
+        }
+        break;\
+
+    case WIFIMODE:
+        if(rsp == 0){
+          Connect();
+          STATUS = CONNECT;
+        }
+        else{
+          Reset();
+          STATUS = RST;
+        }
+        break;
+
+    case CONNECT:
+        if(rsp == 0){
+          GetIP();
+          STATUS = GETIP;
+        }
+        else{
+          Connect();
+          STATUS = CONNECT;
+        }
+        break;
+
+    case GETIP:
+        if(rsp == 0){
+          //GetIP();
+          STATUS = CONNECTED;
+        }
+        else{
+          //.Reset();
+          //_STATE = RST;
+        }
+        break;
+
+    case CONNECTED:
+
+        break;
+
+    case OPENTCP:
+        if(rsp == 0){
+          SendTCP();
+          STATUS = SENDTCP;
+        }
+        else{
+          OpenTCP();
+          STATUS = OPENTCP;
+        }
+        break;
+
+    case SENDTCP:
+        if(rsp == 2){ // >
+          SendDataTCP();
+          STATUS = SENDTCP;
+        }
+        else if(rsp == 1){ // error
+          CloseTCP();
+          STATUS = CLOSETCP;
+        }
+          break;
+
+    case SENDDATATCP:
+        if(rsp == 0){ // >
+          //SendDataTCP();
+          STATUS = SENDTCP;
+        }
+        else { // error
+          CloseTCP();
+          STATUS = CLOSETCP;
+        }
+        break;
+
+    case CLOSETCP:
+        if(rsp == 0){ // >
+          //SendDataTCP();
+          STATUS = CONNECTED;
+        }
+        else { // error
+          Reset();
+          STATUS = RST;
+        }
+        break;
+    }
 }
-int ADCdata;
 
+   void IQRButton(){
+     //get analogico value
+     // atualizar
+     OpenTCP();
+     STATUS = OPENTCP;
 
-int main() {
-  // lcd.cls();
-  // lcd.locate(0,1);
-  // lcd.printf("Hello_World\n" );
-  // wait(2);
- esp.baud(115200);
- pc.baud(115200);
-// int i = 0;
-// wait(2);
-
-// esp.printf("AT+CWMODE=1\r\n");
-//
-// esp.printf("AT+CWJAP=\"IC\",\"icomputacaoufal\"\r\n");
-//
-// esp.printf("AT+CIPMUX=1\r\n");
-//
-// esp.printf("AT+CIPSTART=0,\"TCP\",\"api.thingspeak.com\",80\r\n");
-
-// wait(2);
-// flush();
-esp.attach(rxHandler,Serial::RxIrq);
-
-while(1){
-/*
-   esp.printf("AT+CWMODE=3\r\n");
-   wait(1);
-   flush();
-
-   esp.printf("AT+CWJAP=\"IC\",\"icomputacaoufal\"\r\n");
-   wait(20);
-   flush();
-
-   esp.printf("AT+CIPMUX=1\r\n");
-   wait(5);
-   flush();
-
-   esp.printf("AT+CIPSTART=0,\"TCP\",\"api.thingspeak.com\",80\r\n");
-   wait(5);
-   flush();
-
-   esp.printf("AT+CIPSEND=0,%d\r\n", sizeof(server)+15);
-   wait(3);
-   flush();
-
-   esp.printf("%s", server);
-   esp.printf("%d", x);
-   esp.printf(" HTTP/1.0\r\n\r\n\r\n\r\n\r\n");
-
-   */
-   char msg[] = "AT\r\n";
-   char a[] = "AT+RST";
-
-   //esp.printf("AT\r\n");
-  //  pc.printf("%d\n",sizeof(a) );
-  pc.printf("Reset ESP\n");
-  esp.printf(msg);
-  esp.printf(a);
-
-  //  for (i=0;i < sizeof(msg);i++) {
-  //      //if(msg[i]== '\0')
-  //       //   break;
-  //      esp.putc(msg[i]);
-  //      //pc.putc(msg[i]);
-  //  }
-  //  flush();
-   //PWM.period(0.01);
-   //PWM = Ain;
-   //ADCdata = Ain*100;
-   //pc.printf("Values: %d\n",ADCdata);
-  //  wait(2);
-  wait(1);
- }
-
- return 0;
-}
-
-void rxHandler()
-{
-  while(esp.readable()) {
-       buf[count++] = esp.getc();
-      //  esp.getc();
-  }
-  count = 0;
-  m = buf + strlen(buf) - 4;
-
-  // char r[1024];
-  // sprintf(r, "%X", buf);
-
-  pc.printf(buf);
-
-  if (strcmp(m,"OK\n\r") == 0){
-    pc.printf("ESP has reseted!");
-  }else{
-
-
-  }
-  // if(esp.readable())s
-    // pc.printf("aaa\n");
-    memset(buf, 0, sizeof(buf));
-}
+   }

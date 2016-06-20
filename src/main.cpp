@@ -87,6 +87,27 @@
      send(str,T_ESP);
 
    }
+   void EnableWatchdog(){
+     char str[1024];
+     sprintf(str,"AT+CSYSWDTENABLE");
+     send(str,T_ESP);
+   }
+   void DisableWatchdog(){
+     char str[1024];
+     sprintf(str,"AT+CSYSWDTDISABLE");
+     send(str,T_ESP);
+   }
+   void ClearWatchdog(){
+     char str[1024];
+     sprintf(str,"AT+CSYSWDTCLEAR");
+     send(str,T_ESP);
+   }
+   //conectar automaticamente à rede
+   void AutoConnect(){
+     char str[1024];
+     sprintf(str,"AT+ CWAUTOCONN=1");
+     send(str,T_ESP);
+   }
 
    void CloseTCP(){
      char str[1024];
@@ -223,22 +244,23 @@ void opca(){
     case SENDTCP:
         if(rsp == 2){ // >
           SendDataTCP();
-          STATUS = SENDTCP;
+          STATUS = SENDDATATCP;
         }
         else if(rsp == 1){ // error
-          CloseTCP();
-          STATUS = CLOSETCP;
+          SendTCP();
+          STATUS = SENDTCP;
         }
           break;
 
     case SENDDATATCP:
         if(rsp == 0){ // >
           //SendDataTCP();
-          STATUS = SENDTCP;
-        }
-        else { // error
           CloseTCP();
           STATUS = CLOSETCP;
+        }
+        else { // error
+          SendDataTCP();
+          STATUS = SENDDATATCP;
         }
         break;
 

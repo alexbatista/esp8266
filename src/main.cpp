@@ -17,7 +17,7 @@
      CLOSETCP
    };
    char ipServer [] = "184.106.153.149";
-   char server[] = "GET /update?api_key=TGGXXSHNNX87LYX7&field1=50";
+   char server[] = "GET /update?api_key=06R4I3BAROD02GKV&field1=30";
    char ssid[32] = "IC";     // enter WiFi router ssid inside the quotes
    char pwd [32] = "icomputacaoufal"; // enter WiFi router password inside the quotes
 
@@ -86,27 +86,6 @@
      sprintf(str,"%s",server);
      send(str,T_ESP);
 
-   }
-   void EnableWatchdog(){
-     char str[1024];
-     sprintf(str,"AT+CSYSWDTENABLE");
-     send(str,T_ESP);
-   }
-   void DisableWatchdog(){
-     char str[1024];
-     sprintf(str,"AT+CSYSWDTDISABLE");
-     send(str,T_ESP);
-   }
-   void ClearWatchdog(){
-     char str[1024];
-     sprintf(str,"AT+CSYSWDTCLEAR");
-     send(str,T_ESP);
-   }
-   //conectar automaticamente à rede
-   void AutoConnect(){
-     char str[1024];
-     sprintf(str,"AT+ CWAUTOCONN=1");
-     send(str,T_ESP);
    }
 
    void CloseTCP(){
@@ -256,7 +235,7 @@ void opca(){
         if(rsp == 0){ // >
           //SendDataTCP();
           CloseTCP();
-          STATUS = CLOSETCP;
+          STATUS = CONNECTED;
         }
         else { // error
           SendDataTCP();

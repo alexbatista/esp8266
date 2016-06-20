@@ -13,38 +13,37 @@ Library commands for ESP8266
 #define DISABLE_ECHO = "ATE0" //disable echo
 #define RESTORE = "AT+RESTORE" //Restore factory settings
 
-
+char command[512];
 //variable arguments example
-double mountCommand(int num,...){
-  va_list valist;
-   double sum = 0.0;
-   int i;
-
-   /* initialize valist for num number of arguments */
-   va_start(valist, num);
-
-   /* access all the arguments assigned to valist */
-   for (i = 0; i < num; i++) {
-      sum += va_arg(valist, int);
-   }
-
-   /* clean memory reserved for valist */
-   va_end(valist);
-
-   return sum/num;
-}
-
+// char* mountCommand(int num,...){
+//   va_list valist;
+//   char* base[256];
+//   int i;
+//
+//    /* initialize valist for num number of arguments */
+//    va_start(valist, num);
+//
+//    /* access all the arguments assigned to valist */
+//    for (i = 0; i < num; i++) {
+//       base = va_arg(valist, int);
+//       i++;
+//    }
+//
+//    /* clean memory reserved for valist */
+//    va_end(valist);
+//
+//    return sum/num;
+// }
+//mountCommand(RESTORE,40,40);
 
 //Initialize deep sleep function
 char* deepSleep(int time){
-  char command[1024];
   sprintf(command,"AT+GSLP=%d",time);
   return command;
 }
 
 //Serial Port configurations
 char* configUART(unsigned int baudrate, int databits,float stopbits, unsigned int parity, unsigned int flowControl){
-  char command[1024];
   sprintf(command,"AT+UART=%u,%d,%f,%u,%u",baudrate,databits,stopbits,parity,flowControl);
   return command;
 }
@@ -54,14 +53,46 @@ char* configUART(unsigned int baudrate, int databits,float stopbits, unsigned in
 * WiFI AT CONFIGURATIONS
 *********/
 
-char* WiFiMode();
-char* joinAcessPoint(){
-  char command[1024];
-  sprintf(command,"");
+/*WiFi Mode Options
+* 1 - STA
+* 2 - AP
+* 3 - BOTH
+* response command: The mode chosen. ex: STA
+*/
+char* WiFiMode(int mode){
+  sprintf(command,"AT+CWMODE=%d",mode);
   return command;
 }
-char* listAcessPoint(){
-  char command[1024];
-  sprintf(command,"");
+
+char* joinAccessPoint(char *ssid, char *password){
+  sprintf(command,"AT+CWJAP=%s,%s",ssid,password);
+  return command;
+}
+
+char* listAllAccessPoint(){
+  sprintf(command,"AT+CWLAP");
+  return command;
+}
+
+char* listAccessPoint(char* ssid, char* mac, char* channel){
+  sprintf(command,"AT+CWLAP=%s,%s,%s",ssid,mac,channel);
+  return command;
+}
+
+char* quitAccessPoint(){
+  sprintf(command,"AT+CWQAP");
+  return command;
+}
+
+char* setParametersAccessPoint(char* ssid, char* pwd, char* channel, char* encryption){
+  sprintf(command,"AT+CWSAP=%s,%s,%s,%s",ssid,pwd,channel,encryption);
+  return command;
+}
+
+/*
+*return the ip address of stations which are connected to ESP8266 softAP
+*/
+char* ipStationsConnected(){
+  sprintf(command,"AT+CWLIF");
   return command;
 }

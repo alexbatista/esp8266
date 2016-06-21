@@ -17,12 +17,12 @@
      CLOSETCP
    };
    char host [] = "api.thingspeak.com";
-   char server[] = "GET /update?api_key=06R4I3BAROD02GKV&field1=30 HTTP/1.1";
+   char server[] = "GET /update?api_key=06R4I3BAROD02GKV&field1=10 HTTP/1.1\r\nHost: api.thingspeak.com";
   //  char server[] = "GET /update?api_key=06R4I3BAROD02GKV&field1=30 HTTP/1.1\r\nHost: api.thingspeak.com";
    char ssid[32] = "IC";     // enter WiFi router ssid inside the quotes
    char pwd [32] = "icomputacaoufal"; // enter WiFi router password inside the quotes
 
-   char port [] = "80";
+   char port [] = "443";
    char tcp [] = "TCP";
 
    int count = 0, ended, timeout = 2;
@@ -136,14 +136,11 @@ void IQRButton();
    void rxHandler(){
    // 0 -ok, 1 - error, 2 - `>` send return
    //rsp
-
-     //count = 0;
      while(esp.readable()) {
           buf[count++] = esp.getc();
           //pc.putc(esp.getc());
           //count++;
      }
-     //count = 0;
      //wait(2);
      //pc.printf("\n-\n%d\n",strlen(buf));
      //pc.printf("\ncount= %d\n",count);

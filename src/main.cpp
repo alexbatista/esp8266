@@ -16,8 +16,9 @@
      SENDDATATCP,
      CLOSETCP
    };
-   char ipServer [] = "184.106.153.149";
-   char server[] = "GET /update?api_key=06R4I3BAROD02GKV&field1=30";
+   char host [] = "api.thingspeak.com";
+   char server[] = "GET /update?api_key=06R4I3BAROD02GKV&field1=30 HTTP/1.1";
+  //  char server[] = "GET /update?api_key=06R4I3BAROD02GKV&field1=30 HTTP/1.1\r\nHost: api.thingspeak.com";
    char ssid[32] = "IC";     // enter WiFi router ssid inside the quotes
    char pwd [32] = "icomputacaoufal"; // enter WiFi router password inside the quotes
 
@@ -50,11 +51,20 @@
        send(str,T_ESP); //set wifi-mode client
 
    }
+
+   void TypeSingleConnection(){
+     char str[1024];
+     sprintf(str,"AT+CIPMUX=0");
+     send(str,T_ESP);
+   }
+
    void WiFiMode(){
      char str[1024];
      sprintf(str,"AT+CWMODE=1");
      send(str,T_ESP);
+     TypeSingleConnection();
    }
+
    void Connect(){
      char str[1024];
      sprintf(str,"AT+CWJAP=\"%s\",\"%s\"",ssid,pwd);
@@ -70,7 +80,7 @@
 
    void OpenTCP(){
      char str[1024];
-     sprintf(str,"AT+CIPSTART=\"%s\",\"%s\",%s",tcp,ipServer,port);
+     sprintf(str,"AT+CIPSTART=\"%s\",\"%s\",%s",tcp,host,port);
      send(str,T_ESP);
 
    }
@@ -78,14 +88,12 @@
        char str[1024];
        sprintf(str,"AT+CIPSEND=%d",strlen(server));
        send(str,T_ESP); //set wifi-mode client
-
    }
    void SendDataTCP(){
      //pegar leitura do  analogico
      char str[1024];
-     sprintf(str,"%s",server);
+     sprintf(str,"%s\r\n",server);
      send(str,T_ESP);
-
    }
 
    void CloseTCP(){

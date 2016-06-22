@@ -17,19 +17,19 @@
      CLOSETCP
    };
    char host [] = "api.thingspeak.com";
-   char server[] = "GET /update?api_key=06R4I3BAROD02GKV&field1=10 HTTP/1.1\r\nHost: api.thingspeak.com";
+   char server[] = "GET /update?api_key=06R4I3BAROD02GKV&field1=30 HTTP/1.0";
   //  char server[] = "GET /update?api_key=06R4I3BAROD02GKV&field1=30 HTTP/1.1\r\nHost: api.thingspeak.com";
    char ssid[32] = "IC";     // enter WiFi router ssid inside the quotes
    char pwd [32] = "icomputacaoufal"; // enter WiFi router password inside the quotes
 
-   char port [] = "443";
+   char port [] = "80";
    char tcp [] = "TCP";
 
    int count = 0, ended, timeout = 2;
    char buf[1024] = {0};
    char snd[255];
    char * m;
-
+   int flag;
    int op;
    int rsp;
    void send(char* command, int target){
@@ -86,7 +86,7 @@
    }
    void SendTCP(){
        char str[1024];
-       sprintf(str,"AT+CIPSEND=%d",strlen(server));
+       sprintf(str,"AT+CIPSEND=%d",strlen(server)+4);
        send(str,T_ESP); //set wifi-mode client
    }
    void SendDataTCP(){
@@ -115,18 +115,61 @@ void IQRButton();
      //Reset();
      esp.printf("AT\r\n");
      STATUS = RST;
-     wait(2);
+     wait(3);
+/*
+     WiFiMode();
+
+     wait(3);
+     pc.printf("_______________");
+     pc.printf("\nBUF= %s\n",buf);
+     pc.printf("OP = %d\n",op);
+     pc.printf("STATUS = %d\n",STATUS);
+     memset(buf, 0, sizeof(buf));
+     count=0;
+
+     Connect();
+     wait(10);
+     pc.printf("_______________");
+     pc.printf("\nBUF= %s\n",buf);
+     pc.printf("OP = %d\n",op);
+     pc.printf("STATUS = %d\n",STATUS);
+     memset(buf, 0, sizeof(buf));
+     count=0;
+     OpenTCP();
+     wait(10);
+     pc.printf("_______________");
+     pc.printf("\nBUF= %s\n",buf);
+     pc.printf("OP = %d\n",op);
+     pc.printf("STATUS = %d\n",STATUS);
+     memset(buf, 0, sizeof(buf));
+     count=0;
+     SendTCP();
+     wait(10);
+     pc.printf("_______________");
+     pc.printf("\nBUF= %s\n",buf);
+     pc.printf("OP = %d\n",op);
+     pc.printf("STATUS = %d\n",STATUS);
+     memset(buf, 0, sizeof(buf));
+     count=0;
+     SendDataTCP();
+     wait(10);
+     pc.printf("_______________");
+     pc.printf("\nBUF= %s\n",buf);
+     pc.printf("OP = %d\n",op);
+     pc.printf("STATUS = %d\n",STATUS);
+     memset(buf, 0, sizeof(buf));
+     count=0;
      //opca();
+     */
      while(1){
        //sleep();
        pc.printf("_______________");
        pc.printf("\nBUF= %s\n",buf);
-       pc.printf("M = %s\n",m);
-       pc.printf("OP = %d\n",op);
+       pc.printf("RSP = %d\n",rsp);
        pc.printf("STATUS = %d\n",STATUS);
        memset(buf, 0, sizeof(buf));
        count=0;
-       wait(10);
+       wait(5);
        opca();
      }
 
@@ -138,30 +181,33 @@ void IQRButton();
    //rsp
      while(esp.readable()) {
           buf[count++] = esp.getc();
-          //pc.putc(esp.getc());
-          //count++;
      }
-     //wait(2);
-     //pc.printf("\n-\n%d\n",strlen(buf));
-     //pc.printf("\ncount= %d\n",count);
-     m = buf + strlen(buf) - 4;
 
-     if (strcmp(m,"OK\r\n") == 0){
-       op = 1;
-       rsp = 0;
-       // pc.printf("ESP has reseted!");
-     }else if (strcmp(m,"\n>\r\n") == 0){
-       op = 2;
-       rsp = 2;
-       // pc.printf("ESP has reseted!");
-     }else{
-       op=3;
-       rsp = 1;
-       // pc.printf("%s",m);
+    m = buf + strlen(buf) - 4;
+
+    flag = 0;
+    op=3;
+    rsp = 1;
+
+     for(int i =0; i < count;i++ ){
+       if (buf[i] == '>'){
+         op = 2;
+         rsp = 2;
+         flag =1;
+         break;
+       }
      }
-     //  memset(buf, 0, sizeof(buf));
-// pc.printf("\nIN-2, OP = %d,\nM = %s",op,buf);
-
+     if(flag == 0){
+         for(int i =0; i < count-1;i++ ){
+           if ( buf[i] == 'O'){
+             if(buf[i+1] == 'K'){
+             op = 0;
+             rsp = 0;
+             break;
+           }
+         }
+       }
+    }
    }
 void opca(){
   switch (STATUS) {
@@ -254,8 +300,8 @@ void opca(){
           STATUS = CONNECTED;
         }
         else { // error
-          Reset();
-          STATUS = RST;
+          //Reset();
+          //STATUS = RST;
         }
         break;
     }

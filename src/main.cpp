@@ -254,7 +254,7 @@ void opca(){
      //get analogico value
      // atualizar
      bt.rise(NULL);
-     analog = Ain;
+     analog = Ain*100;
      OpenTCP();
      STATUS = OPENTCP;
 

@@ -5,6 +5,8 @@
    Serial pc(USBTX, USBRX);
    Serial esp(A0,A1);
    InterruptIn bt(USER_BUTTON);
+   AnalogIn Ain(A5);
+
    enum _STATE{
      RST,
      WIFIMODE,
@@ -13,11 +15,10 @@
      CONNECTED,
      OPENTCP,
      SENDTCP,
-     SENDDATATCP,
-     CLOSETCP
+     SENDDATATCP
    };
    char host [] = "api.thingspeak.com";
-   char server[] = "GET /update?api_key=06R4I3BAROD02GKV&field1=30 HTTP/1.0";
+   char server[] = "GET /update?api_key=06R4I3BAROD02GKV&field1=";
   //  char server[] = "GET /update?api_key=06R4I3BAROD02GKV&field1=30 HTTP/1.1\r\nHost: api.thingspeak.com";
    char ssid[32] = "IC";     // enter WiFi router ssid inside the quotes
    char pwd [32] = "icomputacaoufal"; // enter WiFi router password inside the quotes
@@ -30,8 +31,8 @@
    char snd[255];
    char * m;
    int flag;
-   int op;
    int rsp;
+   int analog;
    void send(char* command, int target){
      if(target == 1){
        //pc.printf("%s\r\n",command);
@@ -86,13 +87,14 @@
    }
    void SendTCP(){
        char str[1024];
-       sprintf(str,"AT+CIPSEND=%d",strlen(server)+4);
+       sprintf(str,"%s=%d HTTP/1.0",server,analog);
+       sprintf(str,"AT+CIPSEND=%d",strlen(str)+4);
        send(str,T_ESP); //set wifi-mode client
    }
    void SendDataTCP(){
      //pegar leitura do  analogico
      char str[1024];
-     sprintf(str,"%s\r\n",server);
+     sprintf(str,"%s=%d HTTP/1.0\r\n",server,analog);
      send(str,T_ESP);
    }
 
@@ -109,68 +111,25 @@ void IQRButton();
      pc.baud(115200);
 
      esp.attach(rxHandler,Serial::RxIrq);
-     bt.rise(&IQRButton);
      pc.printf("Initi RST\n");
      wait(1);
      //Reset();
      esp.printf("AT\r\n");
      STATUS = RST;
      wait(3);
-/*
-     WiFiMode();
 
-     wait(3);
-     pc.printf("_______________");
-     pc.printf("\nBUF= %s\n",buf);
-     pc.printf("OP = %d\n",op);
-     pc.printf("STATUS = %d\n",STATUS);
-     memset(buf, 0, sizeof(buf));
-     count=0;
-
-     Connect();
-     wait(10);
-     pc.printf("_______________");
-     pc.printf("\nBUF= %s\n",buf);
-     pc.printf("OP = %d\n",op);
-     pc.printf("STATUS = %d\n",STATUS);
-     memset(buf, 0, sizeof(buf));
-     count=0;
-     OpenTCP();
-     wait(10);
-     pc.printf("_______________");
-     pc.printf("\nBUF= %s\n",buf);
-     pc.printf("OP = %d\n",op);
-     pc.printf("STATUS = %d\n",STATUS);
-     memset(buf, 0, sizeof(buf));
-     count=0;
-     SendTCP();
-     wait(10);
-     pc.printf("_______________");
-     pc.printf("\nBUF= %s\n",buf);
-     pc.printf("OP = %d\n",op);
-     pc.printf("STATUS = %d\n",STATUS);
-     memset(buf, 0, sizeof(buf));
-     count=0;
-     SendDataTCP();
-     wait(10);
-     pc.printf("_______________");
-     pc.printf("\nBUF= %s\n",buf);
-     pc.printf("OP = %d\n",op);
-     pc.printf("STATUS = %d\n",STATUS);
-     memset(buf, 0, sizeof(buf));
-     count=0;
-     //opca();
-     */
      while(1){
-       //sleep();
+
        pc.printf("_______________");
        pc.printf("\nBUF= %s\n",buf);
        pc.printf("RSP = %d\n",rsp);
        pc.printf("STATUS = %d\n",STATUS);
+       pc.printf("Values: %d\n",Ain*100);
        memset(buf, 0, sizeof(buf));
        count=0;
        wait(5);
        opca();
+
      }
 
 
@@ -183,15 +142,11 @@ void IQRButton();
           buf[count++] = esp.getc();
      }
 
-    m = buf + strlen(buf) - 4;
-
     flag = 0;
-    op=3;
     rsp = 1;
 
      for(int i =0; i < count;i++ ){
        if (buf[i] == '>'){
-         op = 2;
          rsp = 2;
          flag =1;
          break;
@@ -201,7 +156,6 @@ void IQRButton();
          for(int i =0; i < count-1;i++ ){
            if ( buf[i] == 'O'){
              if(buf[i+1] == 'K'){
-             op = 0;
              rsp = 0;
              break;
            }
@@ -257,7 +211,7 @@ void opca(){
         break;
 
     case CONNECTED:
-
+          bt.rise(&IQRButton);
         break;
 
     case OPENTCP:
@@ -293,23 +247,14 @@ void opca(){
           STATUS = SENDDATATCP;
         }
         break;
-
-    case CLOSETCP:
-        if(rsp == 0){ // >
-          //SendDataTCP();
-          STATUS = CONNECTED;
-        }
-        else { // error
-          //Reset();
-          //STATUS = RST;
-        }
-        break;
     }
 }
 
    void IQRButton(){
      //get analogico value
      // atualizar
+     bt.rise(NULL);
+     analog = Ain;
      OpenTCP();
      STATUS = OPENTCP;
 

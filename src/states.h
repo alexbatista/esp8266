@@ -1,0 +1,30 @@
+#define T_PC 0
+#define T_ESP 1
+
+#define OK_SEND 2
+#define ERROR 1
+#define OK 0
+
+#define CLOSE_ERROR 1
+#define CLOSE_OK 0
+
+enum _STATE{
+  INIT,
+  W_INIT,
+  WIFIMODE,
+  W_WIFIMODE,
+  CONNECT,
+  W_CONNECT,
+  GETIP,
+  W_GETIP,
+  CONNECTED,
+  ENABLE_BUTTON,
+  OPENTCP,
+  W_OPENTCP,
+  SENDTCP,
+  W_SENDTCP,
+  SENDDATATCP,
+  W_SENDDATATCP,
+  CLOSETCP,
+  W_CLOSETCP
+};
